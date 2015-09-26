@@ -12,16 +12,15 @@ namespace FtexTool.Ftex
         public byte FtexsFileNumber { get; set; }
         public short ChunkCount { get; set; }
 
-        public static FtexFileMipMapInfo ReadFtexFileMipMapInfo(Stream inputStream)
+        public static FtexFileMipMapInfo ReadFtexFileMipMapInfo(X360Reader reader)
         {
             FtexFileMipMapInfo result = new FtexFileMipMapInfo();
-            result.Read(inputStream);
+            result.Read(reader);
             return result;
         }
 
-        public void Read(Stream inputStream)
+        public void Read(X360Reader reader)
         {
-            BinaryReader reader = new BinaryReader(inputStream, Encoding.Default, true);
             Offset = reader.ReadInt32();
             DecompressedFileSize = reader.ReadInt32();
             CompressedFileSize = reader.ReadInt32();
@@ -30,9 +29,8 @@ namespace FtexTool.Ftex
             ChunkCount = reader.ReadInt16();
         }
 
-        public void Write(Stream outputStream)
+        public void Write(X360Writer writer)
         {
-            BinaryWriter writer = new BinaryWriter(outputStream, Encoding.Default, true);
             writer.Write(Offset);
             writer.Write(DecompressedFileSize);
             writer.Write(CompressedFileSize);

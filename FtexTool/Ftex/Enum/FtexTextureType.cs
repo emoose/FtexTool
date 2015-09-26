@@ -27,6 +27,8 @@
         ///     NRM files
         ///     NormalMap
         /// </summary>
-        NormalMap = 0x01000009
+        NormalMap = 0x01000009,
+
+        Unknown1 = 0x01000011
     }
 }

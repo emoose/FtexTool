@@ -37,7 +37,7 @@ namespace FtexTool
                 {
                     try
                     {
-                        UnpackFtexFile(file.FullName, arguments.OutputPath);
+                        UnpackFtexFile(file.FullName, arguments.OutputPath, arguments.Swizzle);
                     }
                     catch (Exception e)
                     {
@@ -49,11 +49,11 @@ namespace FtexTool
             {
                 if (arguments.InputPath.EndsWith(".ftex"))
                 {
-                    UnpackFtexFile(arguments.InputPath, arguments.OutputPath);
+                    UnpackFtexFile(arguments.InputPath, arguments.OutputPath, arguments.Swizzle);
                 }
                 else if (arguments.InputPath.EndsWith(".dds"))
                 {
-                    PackDdsFile(arguments.InputPath, arguments.OutputPath, arguments.TextureType);
+                    PackDdsFile(arguments.InputPath, arguments.OutputPath, arguments.TextureType, arguments.BigEndian);
                 }
                 else
                 {
@@ -67,6 +67,7 @@ namespace FtexTool
             FtexToolArguments arguments = new FtexToolArguments
             {
                 DisplayHelp = false,
+                BigEndian = false,
                 TextureType = FtexTextureType.DiffuseMap,
                 InputPath = "",
                 OutputPath = ""
@@ -121,6 +122,14 @@ namespace FtexTool
                         case "-output":
                             expectOutput = true;
                             break;
+                        case "-be":
+                        case "-bigendian":
+                            arguments.BigEndian = true;
+                            break;
+                        case "-sw":
+                        case "-swizzle":
+                            arguments.Swizzle = true;
+                            break;
                         default:
                             arguments.Errors.Add("Unknown option");
                             break;
@@ -159,7 +168,7 @@ namespace FtexTool
                               "  FtexTool -t n file.dds Packs a dds file as a normal map\n");
         }
 
-        private static void PackDdsFile(string filePath, string outputPath, FtexTextureType textureType)
+        private static void PackDdsFile(string filePath, string outputPath, FtexTextureType textureType, bool bigEndian)
         {
             string fileDirectory = String.IsNullOrEmpty(outputPath) ? Path.GetDirectoryName(filePath) : outputPath;
             string fileName = Path.GetFileNameWithoutExtension(filePath);
@@ -173,7 +182,7 @@ namespace FtexTool
                 string ftexsFilePath = Path.Combine(fileDirectory, ftexsFileName);
 
                 using (FileStream ftexsStream = new FileStream(ftexsFilePath, FileMode.Create))
-                    ftexsFile.Write(ftexsStream);
+                    ftexsFile.Write(ftexsStream, bigEndian);
             }
 
             ftexFile.UpdateOffsets();
@@ -182,7 +191,7 @@ namespace FtexTool
             string ftexFilePath = Path.Combine(fileDirectory, ftexFileName);
 
             using (FileStream ftexStream = new FileStream(ftexFilePath, FileMode.Create))
-                ftexFile.Write(ftexStream);
+                ftexFile.Write(ftexStream, bigEndian);
         }
 
         private static DdsFile GetDdsFile(string filePath)
@@ -193,13 +202,13 @@ namespace FtexTool
             return ddsFile;
         }
 
-        private static void UnpackFtexFile(string filePath, string outputPath)
+        private static void UnpackFtexFile(string filePath, string outputPath, bool deswizzle = false)
         {
             string fileDirectory = String.IsNullOrEmpty(outputPath) ? Path.GetDirectoryName(filePath) : outputPath;
             string fileName = Path.GetFileNameWithoutExtension(filePath);
 
             FtexFile ftexFile = GetFtexFile(filePath);
-            DdsFile ddsFile = FtexDdsConverter.ConvertToDds(ftexFile);
+            DdsFile ddsFile = FtexDdsConverter.ConvertToDds(ftexFile, deswizzle);
 
             string ddsFileName = String.Format("{0}.dds", fileName);
             string ddsFilePath = Path.Combine(fileDirectory, ddsFileName);
@@ -241,7 +250,7 @@ namespace FtexTool
                         ftexsStream.Position = mipMapInfo.Offset;
                         FtexsFile ftexsFile;
                         ftexFile.TryGetFtexsFile(mipMapInfo.FtexsFileNumber, out ftexsFile);
-                        ftexsFile.Read(ftexsStream, mipMapInfo.ChunkCount);
+                        ftexsFile.Read(ftexsStream, mipMapInfo.ChunkCount, ftexFile.FlipEndian);
                     }
                 }
                 catch (FileNotFoundException e)

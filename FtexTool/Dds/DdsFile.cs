@@ -14,7 +14,9 @@ namespace FtexTool.Dds
         {
             DdsFile result = new DdsFile();
             BinaryReader reader = new BinaryReader(inputStream, Encoding.Default, true);
-            reader.Assert(MagicNumber);
+            if (reader.ReadInt32() != MagicNumber)
+                return null;
+
             result.Header = DdsFileHeader.Read(inputStream);
 
             if (result.Header.IsDx10())

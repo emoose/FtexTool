@@ -47,19 +47,19 @@ namespace FtexTool.Ftexs
 
         public int Offset { get; set; }
 
-        public static FtexsFileMipMap ReadFtexsFileMipMap(Stream inputStream, short chunkCount)
+        public static FtexsFileMipMap ReadFtexsFileMipMap(Stream inputStream, short chunkCount, bool flipEndian = false)
         {
             FtexsFileMipMap result = new FtexsFileMipMap();
-            result.Read(inputStream, chunkCount);
+            result.Read(inputStream, chunkCount, flipEndian);
             return result;
         }
 
-        public void Read(Stream inputStream, short chunkCount)
+        public void Read(Stream inputStream, short chunkCount, bool flipEndian = false)
         {
             bool absoluteOffseta = chunkCount != 1;
             for (int i = 0; i < chunkCount; i++)
             {
-                FtexsFileChunk chunk = FtexsFileChunk.ReadFtexsFileChunk(inputStream, absoluteOffseta);
+                FtexsFileChunk chunk = FtexsFileChunk.ReadFtexsFileChunk(inputStream, absoluteOffseta, flipEndian);
                 AddChunk(chunk);
             }
         }
@@ -77,7 +77,7 @@ namespace FtexTool.Ftexs
             }
         }
 
-        public void Write(Stream outputStream)
+        public void Write(Stream outputStream, bool flipEndian)
         {
             BinaryWriter writer = new BinaryWriter(outputStream, Encoding.Default, true);
             bool absoluteOffset = Chunks.Count() != 1;
@@ -109,7 +109,7 @@ namespace FtexTool.Ftexs
             writer.BaseStream.Position = Offset;
             foreach (var chunk in Chunks)
             {
-                chunk.Write(outputStream);
+                chunk.Write(outputStream, flipEndian);
             }
             writer.BaseStream.Position = endPosition;
         }

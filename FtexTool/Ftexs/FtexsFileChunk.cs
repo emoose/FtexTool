@@ -9,32 +9,32 @@ namespace FtexTool.Ftexs
         public const int IndexSize = 8;
         private const int OffsetBitMask = 0xFFFF;
 
-        public short CompressedChunkSize
+        public ushort CompressedChunkSize
         {
-            get { return Convert.ToInt16(CompressedChunkData.Length); }
+            get { return Convert.ToUInt16(CompressedChunkData.Length); }
         }
 
-        public short ChunkSize
+        public ushort ChunkSize
         {
-            get { return Convert.ToInt16(ChunkData.Length); }
+            get { return Convert.ToUInt16(ChunkData.Length); }
         }
 
         public uint Offset { get; set; }
         public byte[] ChunkData { get; private set; }
         public byte[] CompressedChunkData { get; private set; }
 
-        public static FtexsFileChunk ReadFtexsFileChunk(Stream inputStream, bool absoluteOffset)
+        public static FtexsFileChunk ReadFtexsFileChunk(Stream inputStream, bool absoluteOffset, bool flipEndian = false)
         {
             FtexsFileChunk result = new FtexsFileChunk();
-            result.Read(inputStream, absoluteOffset);
+            result.Read(inputStream, absoluteOffset, flipEndian);
             return result;
         }
 
-        public void Read(Stream inputStream, bool absoluteOffset)
+        public void Read(Stream inputStream, bool absoluteOffset, bool flipEndian = false)
         {
-            BinaryReader reader = new BinaryReader(inputStream, Encoding.Default, true);
-            short compressedChunkSize = reader.ReadInt16();
-            short decompressedChunkSize = reader.ReadInt16();
+            X360Reader reader = new X360Reader(inputStream, Encoding.Default, true, flipEndian);
+            ushort compressedChunkSize = reader.ReadUInt16();
+            ushort decompressedChunkSize = reader.ReadUInt16();
             Offset = reader.ReadUInt32();
 
             long indexEndPosition = reader.BaseStream.Position;
@@ -56,9 +56,9 @@ namespace FtexTool.Ftexs
             reader.BaseStream.Position = indexEndPosition;
         }
 
-        public void Write(Stream outputStream)
+        public void Write(Stream outputStream, bool flipEndian)
         {
-            BinaryWriter writer = new BinaryWriter(outputStream, Encoding.Default, true);
+            X360Writer writer = new X360Writer(outputStream, Encoding.Default, true, flipEndian);
             writer.Write(CompressedChunkSize);
             writer.Write(ChunkSize);
             writer.Write(Offset);

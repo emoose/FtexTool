@@ -10,8 +10,9 @@ namespace FtexTool.Ftex
 {
     public class FtexFile
     {
-        private const long MagicNumber1 = 4612226451348214854; // FTEX 85 EB 01 40
-        private const int MagicNumber2 = 0x01000001;
+        private const int MagicNumber1 = 0x58455446; // FTEX 85 EB 01 40
+        private const int MagicNumber2 = 0x4001EB85;
+        private const int MagicNumber3 = 0x01000001;
         private const int OneInt32 = 1;
         private const int ZeroInt32 = 0;
         private const byte OneByte = 1;
@@ -43,6 +44,7 @@ namespace FtexTool.Ftex
         public byte AdditionalFtexsFileCount { get; set; }
         public byte[] Hash { get; set; }
 
+        public bool FlipEndian { get; set; }
         public IEnumerable<FtexFileMipMapInfo> MipMapInfos
         {
             get { return _mipMapInfos; }
@@ -94,8 +96,20 @@ namespace FtexTool.Ftex
 
         private void Read(Stream inputStream)
         {
-            BinaryReader reader = new BinaryReader(inputStream, Encoding.Default, true);
-            reader.Assert(MagicNumber1);
+            X360Reader reader = new X360Reader(inputStream, Encoding.Default, true, false);
+            uint magicNumber = reader.ReadUInt32();
+            FlipEndian = magicNumber == 0x46544558;
+            reader.BaseStream.Position -= 4;
+            reader.FlipEndian = FlipEndian;
+
+            magicNumber = reader.ReadUInt32();
+            if (magicNumber != MagicNumber1)
+                return;
+
+            magicNumber = reader.ReadUInt32();
+            if (magicNumber != MagicNumber2)
+                return;
+
             PixelFormatType = reader.ReadInt16();
             Width = reader.ReadInt16();
             Height = reader.ReadInt16();
@@ -103,21 +117,33 @@ namespace FtexTool.Ftex
             MipMapCount = reader.ReadByte();
             NrtFlag = reader.ReadByte();
             UnknownFlags = reader.ReadInt16();
-            reader.Assert(OneInt32);
-            reader.Assert(ZeroInt32);
+
+            reader.FlipEndian = false;
+
+            if (reader.ReadInt32() != OneInt32)
+                return;
+            if (reader.ReadInt32() != ZeroInt32)
+                return;
+
             TextureType = (FtexTextureType) reader.ReadInt32();
             FtexsFileCount = reader.ReadByte();
             AdditionalFtexsFileCount = reader.ReadByte();
-            reader.Assert(ZeroByte);
-            reader.Assert(ZeroByte);
-            reader.Assert(ZeroInt32);
-            reader.Assert(ZeroInt32);
-            reader.Assert(ZeroInt32);
+            if (reader.ReadInt16() != 0)
+                return;
+
+            if (reader.ReadInt32() != ZeroInt32)
+                return;
+            if (reader.ReadInt32() != ZeroInt32)
+                return;
+            if (reader.ReadInt32() != ZeroInt32)
+                return;
+
             Hash = reader.ReadBytes(16);
 
+            reader.FlipEndian = FlipEndian;
             for (int i = 0; i < MipMapCount; i++)
             {
-                FtexFileMipMapInfo fileMipMapInfo = FtexFileMipMapInfo.ReadFtexFileMipMapInfo(inputStream);
+                FtexFileMipMapInfo fileMipMapInfo = FtexFileMipMapInfo.ReadFtexFileMipMapInfo(reader);
                 AddMipMapInfo(fileMipMapInfo);
             }
         }
@@ -135,10 +161,11 @@ namespace FtexTool.Ftex
             }
         }
 
-        public void Write(Stream outputStream)
+        public void Write(Stream outputStream, bool flipEndian = false)
         {
-            BinaryWriter writer = new BinaryWriter(outputStream, Encoding.Default, true);
+            X360Writer writer = new X360Writer(outputStream, Encoding.Default, true, flipEndian);
             writer.Write(MagicNumber1);
+            writer.Write(MagicNumber2);
             writer.Write(PixelFormatType);
             writer.Write(Width);
             writer.Write(Height);
@@ -146,6 +173,7 @@ namespace FtexTool.Ftex
             writer.Write(MipMapCount);
             writer.Write(NrtFlag);
             writer.Write(UnknownFlags);
+            writer.FlipEndian = false;
             writer.Write(OneInt32);
             writer.Write(ZeroInt32);
             writer.Write(Convert.ToInt32(TextureType));
@@ -157,9 +185,10 @@ namespace FtexTool.Ftex
             writer.Write(ZeroInt32);
             writer.Write(ZeroInt32);
             writer.Write(Hash);
+            writer.FlipEndian = flipEndian;
             foreach (var mipMap in MipMapInfos)
             {
-                mipMap.Write(outputStream);
+                mipMap.Write(writer);
             }
         }
 

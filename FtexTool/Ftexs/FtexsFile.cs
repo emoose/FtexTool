@@ -38,9 +38,9 @@ namespace FtexTool.Ftexs
             get { return MipMaps.Sum(mipMap => mipMap.CompressedDataSize); }
         }
 
-        public void Read(Stream inputStream, short chunkCount)
+        public void Read(Stream inputStream, short chunkCount, bool flipEndian = false)
         {
-            FtexsFileMipMap mipMap = FtexsFileMipMap.ReadFtexsFileMipMap(inputStream, chunkCount);
+            FtexsFileMipMap mipMap = FtexsFileMipMap.ReadFtexsFileMipMap(inputStream, chunkCount, flipEndian);
             AddMipMap(mipMap);
         }
 
@@ -49,11 +49,11 @@ namespace FtexTool.Ftexs
             _mipMaps.Add(mipMap);
         }
 
-        public void Write(Stream outputStream)
+        public void Write(Stream outputStream, bool flipEndian)
         {
             foreach (var mipMap in MipMaps.Reverse())
             {
-                mipMap.Write(outputStream);
+                mipMap.Write(outputStream, flipEndian);
             }
         }
     }

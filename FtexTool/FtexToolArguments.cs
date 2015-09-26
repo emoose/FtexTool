@@ -19,6 +19,8 @@ namespace FtexTool
         public string InputPath { get; set; }
         public bool DirectoryInput { get; set; }
         public string OutputPath { get; set; }
+        public bool BigEndian { get; set; }
+        public bool Swizzle { get; set; }
 
         public List<string> Errors
         {

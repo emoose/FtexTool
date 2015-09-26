@@ -18,13 +18,6 @@ namespace FtexTool
             writer.Write(zeros);
         }
 
-        internal static void Assert<T>(this BinaryReader reader, T expected, string message = "") where T : struct
-        {
-            T actual = ReadValue<T>(reader);
-            if (actual.Equals(expected) == false)
-                throw new AssertionFailedException(message);
-        }
-
         private static T ReadValue<T>(BinaryReader reader) where T : struct
         {
             int size = SizeOf(typeof (T));
